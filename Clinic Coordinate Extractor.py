@@ -7,7 +7,7 @@ gmaps = googlemaps.Client(key='AIzaSyC8YolHfAp5MwC9Sl0mq-Q-oKzqhYp3kyY')
 
 # Load the updated CSV file
 csv_path = r"C:\Users\Siva Adharsh\Clinic Address\clinics_with_addresses.csv"
-clinics_df = pd.read_csv(csv_path)
+clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
 
 # Function to get coordinates from address using Google Maps API
 def get_coordinates(address):
