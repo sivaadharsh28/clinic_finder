@@ -5,10 +5,11 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
+import os
 
 # Load the data
-csv_path = r"C:\Users\Siva Adharsh\Downloads\clinics_with_coordinates.csv"
-clinics_df = pd.read_csv(csv_path)
+csv_path = "clinics_with_coordinates.csv"  # Update this line with your actual path
+clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
 
 # Initialize Google Maps client
 gmaps = googlemaps.Client(key='AIzaSyC8YolHfAp5MwC9Sl0mq-Q-oKzqhYp3kyY')
@@ -26,7 +27,7 @@ MAIN_MENU, NAME, AGE, OCCUPATION, PHONE, EMAIL, LOCATION = range(7)
 
 # Google Sheets setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name(r"C:\Users\Siva Adharsh\Clinic Address\cloud_access.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name('cloud_access.json', scope)  # Update this line with your actual path
 client = gspread.authorize(creds)
 sheet = client.open("User Data").sheet1  # Open the Google Sheet named 'User Data' and select the first sheet
 
@@ -231,8 +232,10 @@ def main() -> None:
     # Add the conversation handler to the application
     application.add_handler(conv_handler)
 
-    # Start the Bot and run until you press Ctrl-C or the process receives SIGINT, SIGTERM or SIGABRT.
-    application.run_polling()
+    return application
 
-if __name__ == '__main__':
-    main()
+# Handle incoming updates from the webhook
+def handle_update(update_json):
+    application = main()
+    update = Update.de_json(update_json, application.bot)
+    application.process_update(update)
