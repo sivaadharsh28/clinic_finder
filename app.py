@@ -1,19 +1,16 @@
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ConversationHandler
-import pandas as pd
-import googlemaps
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from python-telegram-bot import main
+from keep_alive import start_keep_alive
 import os
 
 app = Flask(__name__)
 
-# Initialize the Telegram bot
-TOKEN = os.getenv("BOT_TOKEN")
-application = Application.builder().token(TOKEN).build()
+# Set environment variables (these should be set in your Render service settings)
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-# Define your bot handlers here...
+# Initialize the bot application
+application = main(BOT_TOKEN)
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
@@ -24,4 +21,5 @@ def webhook():
     return 'error', 404
 
 if __name__ == "__main__":
+    start_keep_alive()
     app.run(port=5000, debug=True)
