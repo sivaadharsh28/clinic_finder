@@ -1,7 +1,7 @@
 from flask import Flask, request
 from telegram import Update
 from main_bot import application
-from keep_alive import keep_alive  # Import the keep_alive function
+from keep_alive import start_keep_alive  # Import the keep_alive function
 
 app = Flask(__name__)
 
