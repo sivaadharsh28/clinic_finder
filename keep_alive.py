@@ -4,7 +4,7 @@ import requests
 import os
 
 def keep_alive():
-    url = os.getenv("KEEP_ALIVE_URL")
+    url = os.getenv("https://clinic-finder-k4pj.onrender.com")
     while True:
         try:
             response = requests.get(url)
