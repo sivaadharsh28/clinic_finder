@@ -1,6 +1,6 @@
 from flask import Flask, request
 from telegram import Update
-from main_bot import application  # Assuming your main bot logic is in main_bot.py
+from main_bot import Application  # Assuming your main bot logic is in main_bot.py
 import threading
 import time
 import requests
