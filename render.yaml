@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: telegram-bot
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: "gunicorn app:app"
+    envVars:
+      - key: KEEP_ALIVE_URL
+        value: "https://clinic-finder-k4pj.onrender.com"  # Update with your Render URL
