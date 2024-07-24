@@ -1,10 +1,8 @@
 import threading
 import time
 import requests
-import os
 
-def keep_alive():
-    url = os.getenv("https://clinic-finder-k4pj.onrender.com")
+def keep_alive(url):
     while True:
         try:
             response = requests.get(url)
@@ -16,7 +14,7 @@ def keep_alive():
             print(f"Error in keep-alive request: {e}")
         time.sleep(600)  # Wait for 10 minutes before sending the next request
 
-def start_keep_alive():
-    keep_alive_thread = threading.Thread(target=keep_alive)
+def start_keep_alive(url):
+    keep_alive_thread = threading.Thread(target=keep_alive, args=(url,))
     keep_alive_thread.daemon = True
     keep_alive_thread.start()
