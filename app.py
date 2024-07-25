@@ -5,7 +5,7 @@ import threading
 import time
 import requests
 import os
-from asgiref.wsgi import WsgiToAsgi
+from asgiref.wsgi import WsgiToAsgi  # Added this import
 
 app = Flask(__name__)
 
@@ -17,7 +17,7 @@ def home():
 async def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-        await application.process_update(update)
+        await application.process_update(update)  # Changed this to await
         return 'ok', 200
     return 'error', 404
 
@@ -38,9 +38,10 @@ def start_keep_alive(url):
     keep_alive_thread.daemon = True
     keep_alive_thread.start()
 
+keep_alive_url = os.getenv("KEEP_ALIVE_URL", "https://clinic-finder-k4pj.onrender.com")
+start_keep_alive(keep_alive_url)
+asgi_app = WsgiToAsgi(app)  # Wrapped Flask app with WsgiToAsgi
+
 if __name__ == "__main__":
-    keep_alive_url = os.getenv("KEEP_ALIVE_URL", "https://clinic-finder-k4pj.onrender.com")
-    start_keep_alive(keep_alive_url)
-    asgi_app = WsgiToAsgi(app)
     import uvicorn
-    uvicorn.run(asgi_app, host='0.0.0.0', port=10000, log_level="info")
+    uvicorn.run(asgi_app, host='0.0.0.0', port=10000, log_level="info")  # Updated to use uvicorn with asgi_app
