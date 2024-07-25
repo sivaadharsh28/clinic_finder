@@ -5,8 +5,13 @@ import threading
 import time
 import requests
 import os
+import logging
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @app.route('/')
 def home():
@@ -14,10 +19,16 @@ def home():
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
+    logger.info("Received webhook request.")
     if request.method == "POST":
-        update = Update.de_json(request.get_json(force=True), application.bot)
-        application.process_update(update)
-        return 'ok', 200
+        try:
+            update = Update.de_json(request.get_json(force=True), application.bot)
+            application.process_update(update)
+            logger.info("Processed update successfully.")
+            return 'ok', 200
+        except Exception as e:
+            logger.error(f"Error processing update: {e}")
+            return 'error', 500
     return 'error', 404
 
 def keep_alive(url):
