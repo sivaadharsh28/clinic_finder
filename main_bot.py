@@ -217,3 +217,6 @@ def main(BOT_TOKEN) -> Application:
     application.add_handler(conv_handler)
 
     return application
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+application = main(BOT_TOKEN)
