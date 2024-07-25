@@ -43,4 +43,4 @@ if __name__ == "__main__":
     start_keep_alive(keep_alive_url)
     asgi_app = WsgiToAsgi(app)
     import uvicorn
-    uvicorn.run(asgi_app, host='0.0.0.0', port=5000, log_level="info")
+    uvicorn.run(asgi_app, host='0.0.0.0', port=10000, log_level="info")
