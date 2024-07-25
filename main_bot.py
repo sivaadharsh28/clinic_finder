@@ -1,15 +1,16 @@
+import os
+import telebot
+import random
+import time
 import pandas as pd
 import googlemaps
 import logging
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from telegram import Update, Bot
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler
-import os
 
-# Google Maps API key from environment variables
-GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+API_KEY = os.getenv('API_KEY')
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+bot = telebot.TeleBot(API_KEY)
 
 # Load the data
 csv_path = "clinics_with_coordinates.csv"
@@ -17,16 +18,6 @@ clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
 
 # Initialize Google Maps client
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
-
-# Enable logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
-
-# States for conversation handler
-MAIN_MENU, NAME, AGE, OCCUPATION, PHONE, EMAIL, LOCATION = range(7)
 
 # Google Sheets setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -38,84 +29,118 @@ sheet = client.open("User Data").sheet1
 def save_to_google_sheets(data):
     sheet.append_row([data['Name'], data['Age'], data['Occupation'], data['Phone'], data['Email']])
 
-async def start(update: Update, context: CallbackContext) -> int:
-    reply_keyboard = [['Request for Info', 'Find Clinic']]
-    await update.message.reply_text(
-        'Hi! Welcome to the Clinic Finder bot! Please choose an option:',
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
-    )
-    return MAIN_MENU
+# States for conversation handler
+MAIN_MENU, NAME, AGE, OCCUPATION, PHONE, EMAIL, LOCATION = range(7)
 
-async def main_menu(update: Update, context: CallbackContext) -> int:
-    user_choice = update.message.text.strip()
-    if user_choice == 'Request for Info':
-        return await request_info(update, context)
-    elif user_choice == 'Find Clinic':
-        return await find_clinic(update, context)
-    else:
-        await update.message.reply_text('Invalid choice. Please select an option from the menu.')
-        return MAIN_MENU
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
-async def request_info(update: Update, context: CallbackContext) -> int:
-    await update.message.reply_text('Sure! Let us get in contact with you, could you first tell us your name?', reply_markup=ReplyKeyboardRemove())
-    return NAME
+logger = logging.getLogger(__name__)
 
-async def find_clinic(update: Update, context: CallbackContext) -> int:
-    await update.message.reply_text('Please send me your postal code to find the nearest clinics.', reply_markup=ReplyKeyboardRemove())
-    return LOCATION
+@bot.message_handler(commands=['start'])
+def greet(message):
+    bot.send_message(message.chat.id, "Hi! Welcome to the Clinic Finder bot! Please choose an option: /request_info or /find_clinic")
 
-async def get_name(update: Update, context: CallbackContext) -> int:
-    name = update.message.text.strip()
-    if not name.isalpha():
-        await update.message.reply_text('Invalid name. Please enter a valid name.')
-        return NAME
-    context.user_data['name'] = name
-    await update.message.reply_text('Thanks! How old are you?')
-    return AGE
+@bot.message_handler(commands=['request_info'])
+def request_info(message):
+    msg = bot.reply_to(message, 'Sure! Let us get in contact with you, could you first tell us your name?')
+    bot.register_next_step_handler(msg, process_name_step)
 
-async def get_age(update: Update, context: CallbackContext) -> int:
-    age = update.message.text.strip()
-    if not age.isdigit() or not (5 <= int(age) <= 120):
-        await update.message.reply_text('Invalid. Please enter a valid age.')
-        return AGE
-    context.user_data['age'] = int(age)
-    await update.message.reply_text('Great! What is your occupation?')
-    return OCCUPATION
+def process_name_step(message):
+    try:
+        name = message.text
+        msg = bot.reply_to(message, 'Thanks! How old are you?')
+        bot.register_next_step_handler(msg, process_age_step, name)
+    except Exception as e:
+        bot.reply_to(message, 'ooops')
 
-async def get_occupation(update: Update, context: CallbackContext) -> int:
-    occupation = update.message.text.strip()
-    if not occupation.isalpha():
-        await update.message.reply_text('Invalid occupation. Please enter a valid occupation.')
-        return OCCUPATION
-    context.user_data['occupation'] = occupation
-    await update.message.reply_text('Thanks! Please provide your contact number!')
-    return PHONE
+def process_age_step(message, name):
+    try:
+        age = int(message.text)
+        msg = bot.reply_to(message, 'Great! What is your occupation?')
+        bot.register_next_step_handler(msg, process_occupation_step, name, age)
+    except Exception as e:
+        bot.reply_to(message, 'ooops')
 
-async def get_phone(update: Update, context: CallbackContext) -> int:
-    phone = update.message.text.strip()
-    if not phone.isdigit() or len(phone) != 8:
-        await update.message.reply_text('Invalid phone number. Please enter your 8-digit Singapore phone number.')
-        return PHONE
-    context.user_data['phone'] = phone
-    await update.message.reply_text('Lastly, please provide your email address.')
-    return EMAIL
+def process_occupation_step(message, name, age):
+    try:
+        occupation = message.text
+        msg = bot.reply_to(message, 'Thanks! Please provide your contact number!')
+        bot.register_next_step_handler(msg, process_phone_step, name, age, occupation)
+    except Exception as e:
+        bot.reply_to(message, 'ooops')
 
-async def get_email(update: Update, context: CallbackContext) -> int:
-    email = update.message.text.strip()
-    if '@' not in email or ' ' in email:
-        await update.message.reply_text('Invalid email. Please enter a valid email address.')
-        return EMAIL
-    context.user_data['email'] = email
-    user_data = {
-        'Name': context.user_data['name'],
-        'Age': context.user_data['age'],
-        'Occupation': context.user_data['occupation'],
-        'Phone': context.user_data['phone'],
-        'Email': context.user_data['email']
-    }
-    save_to_google_sheets(user_data)
-    await update.message.reply_text('Thank you for providing your information. Now, please send me your postal code to find the nearest clinics!')
-    return LOCATION
+def process_phone_step(message, name, age, occupation):
+    try:
+        phone = message.text
+        msg = bot.reply_to(message, 'Lastly, please provide your email address.')
+        bot.register_next_step_handler(msg, process_email_step, name, age, occupation, phone)
+    except Exception as e:
+        bot.reply_to(message, 'ooops')
+
+def process_email_step(message, name, age, occupation, phone):
+    try:
+        email = message.text
+        user_data = {
+            'Name': name,
+            'Age': age,
+            'Occupation': occupation,
+            'Phone': phone,
+            'Email': email
+        }
+        save_to_google_sheets(user_data)
+        bot.reply_to(message, 'Thank you for providing your information. Now, please send me your postal code to find the nearest clinics!')
+    except Exception as e:
+        bot.reply_to(message, 'ooops')
+
+@bot.message_handler(commands=['find_clinic'])
+def find_clinic(message):
+    msg = bot.reply_to(message, 'Please send me your postal code to find the nearest clinics.')
+    bot.register_next_step_handler(msg, process_location_step)
+
+def process_location_step(message):
+    try:
+        postal_code = message.text
+        nearest_clinics = find_nearest_clinics(postal_code, clinics_df)
+        if isinstance(nearest_clinics, str):
+            bot.reply_to(message, nearest_clinics)
+        else:
+            response = "\n\n".join([f"{row['Clinic Name']} : {row['Address']} \n[Google Maps]({get_google_maps_url(row['Clinic Name'], row['Address'])})" for i, row in nearest_clinics.iterrows()])
+            bot.reply_to(message, response, parse_mode='Markdown')
+    except Exception as e:
+        bot.reply_to(message, 'ooops')
+
+def find_nearest_clinics(postal_code, clinics_df, n=5):
+    user_coords = get_coordinates_from_postal_code(postal_code)
+    if not user_coords:
+        return "Invalid postal code"
+
+    destinations = clinics_df.apply(lambda row: f"{row['Latitude']},{row['Longitude']}", axis=1).tolist()
+
+    max_batch_size = 25
+    batches = [destinations[i:i + max_batch_size] for i in range(0, len(destinations), max_batch_size)]
+
+    all_distances = []
+
+    for batch in batches:
+        distances_result = gmaps.distance_matrix(origins=[user_coords], destinations=batch, mode="driving")
+
+        if distances_result['status'] != 'OK':
+            print(f"Distance Matrix Error: {distances_result['status']}")
+            return "Error in distance matrix request"
+
+        distances = [element['distance']['value'] if element['status'] == 'OK' else float('inf') for element in distances_result['rows'][0]['elements']]
+        all_distances.extend(distances)
+
+    clinics_df['Distance'] = all_distances
+    nearest_clinics = clinics_df.nsmallest(n, 'Distance')
+
+    nearest_clinics['Place_ID'] = nearest_clinics.apply(lambda row: get_place_id(row['Clinic Name'], row['Address']), axis=1)
+
+    return nearest_clinics[['Clinic Name', 'Address', 'Latitude', 'Longitude', 'Place_ID']]
 
 def get_coordinates_from_postal_code(postal_code):
     try:
@@ -142,82 +167,10 @@ def get_place_id(clinic_name, clinic_address):
         print(f"Error getting place_id for clinic {clinic_name} at {clinic_address}: {e}")
         return None
 
-def find_nearest_clinics(postal_code, clinics_df, n=5):
-    user_coords = get_coordinates_from_postal_code(postal_code)
-    if not user_coords:
-        return "Invalid postal code"
-
-    destinations = clinics_df.apply(lambda row: f"{row['Latitude']},{row['Longitude']}", axis=1).tolist()
-    
-    max_batch_size = 25
-    batches = [destinations[i:i + max_batch_size] for i in range(0, len(destinations), max_batch_size)]
-
-    all_distances = []
-
-    for batch in batches:
-        distances_result = gmaps.distance_matrix(origins=[user_coords], destinations=batch, mode="driving")
-
-        if distances_result['status'] != 'OK':
-            print(f"Distance Matrix Error: {distances_result['status']}")
-            return "Error in distance matrix request"
-
-        distances = [element['distance']['value'] if element['status'] == 'OK' else float('inf') for element in distances_result['rows'][0]['elements']]
-        all_distances.extend(distances)
-
-    clinics_df['Distance'] = all_distances
-    nearest_clinics = clinics_df.nsmallest(n, 'Distance')
-
-    nearest_clinics['Place_ID'] = nearest_clinics.apply(lambda row: get_place_id(row['Clinic Name'], row['Address']), axis=1)
-
-    return nearest_clinics[['Clinic Name', 'Address', 'Latitude', 'Longitude', 'Place_ID']]
-
-async def handle_postal_code(update: Update, context: CallbackContext) -> None:
-    postal_code = update.message.text.strip()
-    if not postal_code.isdigit() or len(postal_code) != 6:
-        await update.message.reply_text("Invalid postal code. Please enter a 6-digit postal code.")
-        return
-
-    logger.info(f"Received postal code: {postal_code}")
-    nearest_clinics = find_nearest_clinics(postal_code, clinics_df)
-    if isinstance(nearest_clinics, str):
-        logger.info(f"Response: {nearest_clinics}")
-        await update.message.reply_text(nearest_clinics)
-    else:
-        response = "\n\n".join([f"{row['Clinic Name']} : {row['Address']} \n[Google Maps]({get_google_maps_url(row['Clinic Name'], row['Address'])})" for i, row in nearest_clinics.iterrows()])
-        logger.info(f"Response: {response}")
-        await update.message.reply_text(response, parse_mode='Markdown')
-
 def get_google_maps_url(clinic_name, clinic_address):
     return f"https://www.google.com/maps/search/?api=1&query={clinic_name},{clinic_address},Singapore"
 
-async def help_command(update: Update, context: CallbackContext) -> None:
-    await update.message.reply_text('Send me a postal code, and I will find the nearest clinics for you.')
+from app import keep_alive
+keep_alive()
 
-def main():
-    bot = Bot(token=BOT_TOKEN)
-    updater = Updater(bot=bot, use_context=True)
-
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
-        states={
-            MAIN_MENU: [MessageHandler(Filters.text & ~Filters.command, main_menu)],
-            NAME: [MessageHandler(Filters.text & ~Filters.command, get_name)],
-            AGE: [MessageHandler(Filters.text & ~Filters.command, get_age)],
-            OCCUPATION: [MessageHandler(Filters.text & ~Filters.command, get_occupation)],
-            PHONE: [MessageHandler(Filters.text & ~Filters.command, get_phone)],
-            EMAIL: [MessageHandler(Filters.text & ~Filters.command, get_email)],
-            LOCATION: [MessageHandler(Filters.text & ~Filters.command, handle_postal_code)],
-        },
-        fallbacks=[CommandHandler('start', start)],
-    )
-
-    updater.dispatcher.add_handler(CommandHandler("request_info", request_info))
-    updater.dispatcher.add_handler(CommandHandler("find_clinic", find_clinic))
-    updater.dispatcher.add_handler(CommandHandler("help", help_command))
-    updater.dispatcher.add_handler(conv_handler)
-
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == '__main__':
-    main()
+bot.polling()
