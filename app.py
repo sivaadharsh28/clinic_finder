@@ -5,14 +5,9 @@ import threading
 import time
 import requests
 import os
-import logging
-import asyncio
+from asgiref.wsgi import WsgiToAsgi
 
 app = Flask(__name__)
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 @app.route('/')
 def home():
@@ -20,16 +15,10 @@ def home():
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
-    logger.info("Received webhook request.")
     if request.method == "POST":
-        try:
-            update = Update.de_json(request.get_json(force=True), application.bot)
-            asyncio.run(application.process_update(update))
-            logger.info("Processed update successfully.")
-            return 'ok', 200
-        except Exception as e:
-            logger.error(f"Error processing update: {e}")
-            return 'error', 500
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        application.process_update(update)
+        return 'ok', 200
     return 'error', 404
 
 def keep_alive(url):
@@ -48,6 +37,8 @@ def start_keep_alive(url):
     keep_alive_thread = threading.Thread(target=keep_alive, args=(url,))
     keep_alive_thread.daemon = True
     keep_alive_thread.start()
+
+asgi_app = WsgiToAsgi(app)
 
 if __name__ == "__main__":
     keep_alive_url = os.getenv("KEEP_ALIVE_URL", "https://clinic-finder-k4pj.onrender.com")
