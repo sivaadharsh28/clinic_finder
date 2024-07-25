@@ -63,6 +63,7 @@ def main(BOT_TOKEN) -> Application:
 
     async def get_name(update: Update, context: CallbackContext) -> int:
         name = update.message.text.strip()
+        logger.info(f"Received name: {name}")
         if not name.isalpha():
             await update.message.reply_text('Invalid name. Please enter a valid name.')
             return NAME
@@ -72,6 +73,7 @@ def main(BOT_TOKEN) -> Application:
 
     async def get_age(update: Update, context: CallbackContext) -> int:
         age = update.message.text.strip()
+        logger.info(f"Received age: {age}")
         if not age.isdigit() or not (5 <= int(age) <= 120):
             await update.message.reply_text('Invalid. Please enter a valid age.')
             return AGE
@@ -81,6 +83,7 @@ def main(BOT_TOKEN) -> Application:
 
     async def get_occupation(update: Update, context: CallbackContext) -> int:
         occupation = update.message.text.strip()
+        logger.info(f"Received occupation: {occupation}")
         if not occupation.isalpha():
             await update.message.reply_text('Invalid occupation. Please enter a valid occupation.')
             return OCCUPATION
@@ -90,6 +93,7 @@ def main(BOT_TOKEN) -> Application:
 
     async def get_phone(update: Update, context: CallbackContext) -> int:
         phone = update.message.text.strip()
+        logger.info(f"Received phone: {phone}")
         if not phone.isdigit() or len(phone) != 8:
             await update.message.reply_text('Invalid phone number. Please enter your 8-digit Singapore phone number.')
             return PHONE
@@ -99,6 +103,7 @@ def main(BOT_TOKEN) -> Application:
 
     async def get_email(update: Update, context: CallbackContext) -> int:
         email = update.message.text.strip()
+        logger.info(f"Received email: {email}")
         if '@' not in email or ' ' in email:
             await update.message.reply_text('Invalid email. Please enter a valid email address.')
             return EMAIL
@@ -170,11 +175,11 @@ def main(BOT_TOKEN) -> Application:
 
     async def handle_postal_code(update: Update, context: CallbackContext) -> None:
         postal_code = update.message.text.strip()
+        logger.info(f"Received postal code: {postal_code}")
         if not postal_code.isdigit() or len(postal_code) != 6:
             await update.message.reply_text("Invalid postal code. Please enter a 6-digit postal code.")
             return
 
-        logger.info(f"Received postal code: {postal_code}")
         nearest_clinics = find_nearest_clinics(postal_code, clinics_df)
         if isinstance(nearest_clinics, str):
             logger.info(f"Response: {nearest_clinics}")
