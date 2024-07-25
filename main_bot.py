@@ -10,6 +10,9 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Define conversation states
+MAIN_MENU, NAME, AGE, OCCUPATION, PHONE, EMAIL, LOCATION = range(7)
+
 def main(BOT_TOKEN) -> Application:
     logger.info("Starting bot...")
 
