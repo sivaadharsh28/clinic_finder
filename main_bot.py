@@ -1,15 +1,14 @@
 import os
 import random
-import time
 import pandas as pd
 import googlemaps
 import logging
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
 
-BOT_KEY = os.getenv('API_KEY')
+BOT_KEY = os.getenv('BOT_KEY')
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
 # Load the data
@@ -196,7 +195,7 @@ async def help_command(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Send me a postal code, and I will find the nearest clinics for you.')
 
 def main():
-    application = Application.builder().token(BOT_KEY).build()
+    application = ApplicationBuilder().token(BOT_KEY).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
@@ -221,4 +220,6 @@ def main():
     application.run_polling()
 
 if __name__ == '__main__':
+    from app import keep_alive
+    keep_alive()
     main()
