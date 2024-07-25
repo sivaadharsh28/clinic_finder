@@ -14,10 +14,10 @@ def home():
     return 'Welcome to the Telegram Bot API', 200
 
 @app.route('/api/webhook', methods=['POST'])
-def webhook():
+async def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-        application.process_update(update)
+        await application.process_update(update)
         return 'ok', 200
     return 'error', 404
 
@@ -38,9 +38,9 @@ def start_keep_alive(url):
     keep_alive_thread.daemon = True
     keep_alive_thread.start()
 
-asgi_app = WsgiToAsgi(app)
-
 if __name__ == "__main__":
     keep_alive_url = os.getenv("KEEP_ALIVE_URL", "https://clinic-finder-k4pj.onrender.com")
     start_keep_alive(keep_alive_url)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    asgi_app = WsgiToAsgi(app)
+    import uvicorn
+    uvicorn.run(asgi_app, host='0.0.0.0', port=5000, log_level="info")
