@@ -6,6 +6,7 @@ import time
 import requests
 import os
 import logging
+import asyncio
 
 app = Flask(__name__)
 
@@ -23,7 +24,7 @@ def webhook():
     if request.method == "POST":
         try:
             update = Update.de_json(request.get_json(force=True), application.bot)
-            application.process_update(update)
+            asyncio.run(application.process_update(update))
             logger.info("Processed update successfully.")
             return 'ok', 200
         except Exception as e:
