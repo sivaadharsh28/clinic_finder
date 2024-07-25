@@ -1,11 +1,8 @@
 from flask import Flask, request
-from telegram import Update
-from main_bot import application  # Assuming your main bot logic is in main_bot.py
 import threading
 import time
 import requests
 import os
-from asgiref.wsgi import WsgiToAsgi  # Added this import
 
 app = Flask(__name__)
 
@@ -14,12 +11,8 @@ def home():
     return 'Welcome to the Telegram Bot API', 200
 
 @app.route('/api/webhook', methods=['POST'])
-async def webhook():
-    if request.method == "POST":
-        update = Update.de_json(request.get_json(force=True), application.bot)
-        await application.process_update(update)  # Changed this to await
-        return 'ok', 200
-    return 'error', 404
+def webhook():
+    return 'Webhook not configured', 200
 
 def keep_alive(url):
     while True:
@@ -40,8 +33,6 @@ def start_keep_alive(url):
 
 keep_alive_url = os.getenv("KEEP_ALIVE_URL", "https://clinic-finder-k4pj.onrender.com")
 start_keep_alive(keep_alive_url)
-asgi_app = WsgiToAsgi(app)  # Wrapped Flask app with WsgiToAsgi
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(asgi_app, host='0.0.0.0', port=10000, log_level="info")  # Updated to use uvicorn with asgi_app
+    app.run(host='0.0.0.0', port=5000, debug=True)
