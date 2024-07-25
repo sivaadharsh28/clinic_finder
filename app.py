@@ -8,11 +8,15 @@ import os
 
 app = Flask(__name__)
 
+@app.route('/')
+def home():
+    return 'Welcome to the Telegram Bot API', 200
+
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
     if request.method == "POST":
-        update = Update.de_json(request.get_json(force=True), application.bot)
-        application.process_update(update)
+        update = Update.de_json(request.get_json(force=True), Application.bot)
+        Application.process_update(update)
         return 'ok', 200
     return 'error', 404
 
@@ -37,3 +41,4 @@ if __name__ == "__main__":
     keep_alive_url = os.getenv("KEEP_ALIVE_URL", "https://clinic-finder-k4pj.onrender.com")
     start_keep_alive(keep_alive_url)
     app.run(host='0.0.0.0', port=5000, debug=True)
+
