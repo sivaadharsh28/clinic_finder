@@ -7,39 +7,31 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
 import os
 
-def main(BOT_TOKEN) -> Application:
-    # Google Maps API key from environment variables
-    GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-    # Load the data
+def main(BOT_TOKEN) -> Application:
+    logger.info("Starting bot...")
+
+    GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
+    logger.info(f"Google Maps API Key: {GOOGLE_MAPS_API_KEY}")
+
     csv_path = "clinics_with_coordinates.csv"
     clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
+    logger.info(f"Loaded clinic data from {csv_path}")
 
-    # Initialize Google Maps client
     gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
-    # Enable logging
-    logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        level=logging.INFO
-    )
-
-    logger = logging.getLogger(__name__)
-
-    # States for conversation handler
-    MAIN_MENU, NAME, AGE, OCCUPATION, PHONE, EMAIL, LOCATION = range(7)
-
-    # Google Sheets setup
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name('cloud_access.json', scope)
     client = gspread.authorize(creds)
     sheet = client.open("User Data").sheet1
 
-    # Function to save user data to Google Sheets
     def save_to_google_sheets(data):
         sheet.append_row([data['Name'], data['Age'], data['Occupation'], data['Phone'], data['Email']])
 
     async def start(update: Update, context: CallbackContext) -> int:
+        logger.info(f"Received /start command from {update.effective_user.id}")
         reply_keyboard = [['Request for Info', 'Find Clinic']]
         await update.message.reply_text(
             'Hi! Welcome to the Clinic Finder bot! Please choose an option:',
@@ -49,6 +41,7 @@ def main(BOT_TOKEN) -> Application:
 
     async def main_menu(update: Update, context: CallbackContext) -> int:
         user_choice = update.message.text.strip()
+        logger.info(f"User selected {user_choice}")
         if user_choice == 'Request for Info':
             return await request_info(update, context)
         elif user_choice == 'Find Clinic':
@@ -218,5 +211,4 @@ def main(BOT_TOKEN) -> Application:
 
     return application
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-application = main(BOT_TOKEN)
+application = main(os.getenv("BOT_TOKEN"))
