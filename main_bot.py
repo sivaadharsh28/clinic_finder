@@ -16,7 +16,7 @@ clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
 # List of authorized usernames
-AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast','maatchaemochii']  # Replace with actual usernames
+AUTHORIZED_USERNAMES = ['username1', 'username2']  # Replace with actual usernames
 
 # States for conversation handler
 LOCATION = range(1)
@@ -32,8 +32,9 @@ logger = logging.getLogger(__name__)
 def is_authorized(username):
     return username in AUTHORIZED_USERNAMES
 
-def is_authorized_user_in_group(chat):
-    for member in chat.get_administrators():
+async def is_authorized_user_in_group(chat):
+    administrators = await chat.get_administrators()
+    for member in administrators:
         if member.user.username in AUTHORIZED_USERNAMES:
             return True
     return False
@@ -46,7 +47,7 @@ async def start(update: Update, context: CallbackContext) -> int:
         await update.message.reply_text('You are not authorized to use this bot.')
         return ConversationHandler.END
 
-    if chat_type in ['group', 'supergroup'] and not is_authorized_user_in_group(update.message.chat):
+    if chat_type in ['group', 'supergroup'] and not await is_authorized_user_in_group(update.message.chat):
         await update.message.reply_text('No authorized user in the group to use this bot.')
         return ConversationHandler.END
 
@@ -118,7 +119,7 @@ async def handle_postal_code(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text('You are not authorized to use this bot.')
         return
 
-    if chat_type in ['group', 'supergroup'] and not is_authorized_user_in_group(update.message.chat):
+    if chat_type in ['group', 'supergroup'] and not await is_authorized_user_in_group(update.message.chat):
         await update.message.reply_text('No authorized user in the group to use this bot.')
         return
 
