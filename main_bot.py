@@ -15,6 +15,9 @@ clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
 # Initialize Google Maps client
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
+# List of authorized usernames
+AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast']  # Replace with actual usernames
+
 # States for conversation handler
 LOCATION = range(1)
 
@@ -26,7 +29,27 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+def is_authorized(username):
+    return username in AUTHORIZED_USERNAMES
+
+def is_authorized_user_in_group(chat):
+    for member in chat.get_administrators():
+        if member.user.username in AUTHORIZED_USERNAMES:
+            return True
+    return False
+
 async def start(update: Update, context: CallbackContext) -> int:
+    username = update.message.from_user.username
+    chat_type = update.message.chat.type
+
+    if chat_type == 'private' and not is_authorized(username):
+        await update.message.reply_text('You are not authorized to use this bot.')
+        return ConversationHandler.END
+
+    if chat_type in ['group', 'supergroup'] and not is_authorized_user_in_group(update.message.chat):
+        await update.message.reply_text('No authorized user in the group to use this bot.')
+        return ConversationHandler.END
+
     await update.message.reply_text(
         'Hi! Welcome to the Clinic Finder bot! Please send me your postal code to find the nearest clinics.',
         reply_markup=ReplyKeyboardRemove()
@@ -88,6 +111,17 @@ def get_place_id(clinic_name, clinic_address):
         return None
 
 async def handle_postal_code(update: Update, context: CallbackContext) -> None:
+    username = update.message.from_user.username
+    chat_type = update.message.chat.type
+
+    if chat_type == 'private' and not is_authorized(username):
+        await update.message.reply_text('You are not authorized to use this bot.')
+        return
+
+    if chat_type in ['group', 'supergroup'] and not is_authorized_user_in_group(update.message.chat):
+        await update.message.reply_text('No authorized user in the group to use this bot.')
+        return
+
     postal_code = update.message.text.strip()
     if not postal_code.isdigit() or len(postal_code) != 6:
         await update.message.reply_text("Invalid postal code. Please enter a 6-digit postal code.")
