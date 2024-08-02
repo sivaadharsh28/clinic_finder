@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import googlemaps
 import logging
+import json
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
 
@@ -12,11 +13,18 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 csv_path = "clinics_with_coordinates.csv"
 clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
 
-# Initialize Google Maps client
+# Load the postal codes JSON file
+with open('singpostcode.json', 'r') as f:
+    postal_codes_data = json.load(f)
+
+# Convert postal codes data to a dictionary for quick lookup
+postal_codes_dict = {entry["POSTAL"]: entry for entry in postal_codes_data}
+
+# Initialize Google Maps client (if still needed for other purposes)
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
 # List of authorized usernames
-AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast', 'maatchaemochii']  # Replace with actual usernames
+AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast', 'maatchaemochii'] 
 
 # States for conversation handler
 LOCATION = range(1)
@@ -61,15 +69,11 @@ async def start(update: Update, context: CallbackContext) -> int:
     return LOCATION
 
 def get_coordinates_from_postal_code(postal_code):
-    try:
-        geocode_result = gmaps.geocode(postal_code + ", Singapore")
-        if geocode_result:
-            location = geocode_result[0]['geometry']['location']
-            return (location['lat'], location['lng'])
-        else:
-            return None
-    except Exception as e:
-        print(f"Error geocoding postal code {postal_code}: {e}")
+    # Look up the postal code in the JSON data
+    if postal_code in postal_codes_dict:
+        entry = postal_codes_dict[postal_code]
+        return float(entry["LATITUDE"]), float(entry["LONGITUDE"])
+    else:
         return None
 
 def find_nearest_clinics(postal_code, clinics_df, n=5):
