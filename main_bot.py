@@ -3,6 +3,7 @@ import pandas as pd
 import googlemaps
 import logging
 import json
+import gzip
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
 
@@ -13,9 +14,19 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 csv_path = "clinics_with_coordinates.csv"
 clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
 
-# Load the postal codes JSON file
-with open('singpostcode.json.gz', 'r') as f:
-    postal_codes_data = json.load(f)
+# Load the postal codes JSON file with gzip handling
+postal_codes_data = []
+try:
+    with gzip.open('singpostcode.json.gz', 'rt', encoding='utf-8') as f:
+        postal_codes_data = json.load(f)
+except UnicodeDecodeError as e:
+    print("Error loading JSON file with UTF-8 encoding. Trying with 'ISO-8859-1' encoding.")
+    try:
+        with gzip.open('singpostcode.json.gz', 'rt', encoding='ISO-8859-1') as f:
+            postal_codes_data = json.load(f)
+    except Exception as e:
+        print(f"Failed to load JSON file: {e}")
+        exit(1)
 
 # Convert postal codes data to a dictionary for quick lookup
 postal_codes_dict = {entry["POSTAL"]: entry for entry in postal_codes_data}
@@ -24,7 +35,7 @@ postal_codes_dict = {entry["POSTAL"]: entry for entry in postal_codes_data}
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
 # List of authorized usernames
-AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast', 'maatchaemochii'] 
+AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast', 'maatchaemochii']  # Replace with actual usernames
 
 # States for conversation handler
 LOCATION = range(1)
