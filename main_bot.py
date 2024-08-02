@@ -1,11 +1,8 @@
 import os
-import random
 import pandas as pd
 import googlemaps
 import logging
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
 
 BOT_KEY = os.getenv('API_KEY')
@@ -18,18 +15,8 @@ clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
 # Initialize Google Maps client
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
-# Google Sheets setup
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name('cloud_access.json', scope)
-client = gspread.authorize(creds)
-sheet = client.open("User Data").sheet1
-
-# Function to save user data to Google Sheets
-def save_to_google_sheets(data):
-    sheet.append_row([data['Name'], data['Age'], data['Occupation'], data['Phone'], data['Email']])
-
 # States for conversation handler
-MAIN_MENU, NAME, AGE, OCCUPATION, PHONE, EMAIL, LOCATION = range(7)
+LOCATION = range(1)
 
 # Enable logging
 logging.basicConfig(
@@ -40,82 +27,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: CallbackContext) -> int:
-    reply_keyboard = [['Request for Info', 'Find Clinic']]
     await update.message.reply_text(
-        'Hi! Welcome to the Clinic Finder bot! Please choose an option:',
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
+        'Hi! Welcome to the Clinic Finder bot! Please send me your postal code to find the nearest clinics.',
+        reply_markup=ReplyKeyboardRemove()
     )
-    return MAIN_MENU
-
-async def main_menu(update: Update, context: CallbackContext) -> int:
-    user_choice = update.message.text.strip()
-    if user_choice == 'Request for Info':
-        return await request_info(update, context)
-    elif user_choice == 'Find Clinic':
-        return await find_clinic(update, context)
-    else:
-        await update.message.reply_text('Invalid choice. Please select an option from the menu.')
-        return MAIN_MENU
-
-async def request_info(update: Update, context: CallbackContext) -> int:
-    await update.message.reply_text('Sure! Let us get in contact with you, could you first tell us your name?', reply_markup=ReplyKeyboardRemove())
-    return NAME
-
-async def find_clinic(update: Update, context: CallbackContext) -> int:
-    await update.message.reply_text('Please send me your postal code to find the nearest clinics.', reply_markup=ReplyKeyboardRemove())
-    return LOCATION
-
-async def get_name(update: Update, context: CallbackContext) -> int:
-    name = update.message.text.strip()
-    if not name.isalpha():
-        await update.message.reply_text('Invalid name. Please enter a valid name.')
-        return NAME
-    context.user_data['name'] = name
-    await update.message.reply_text('Thanks! How old are you?')
-    return AGE
-
-async def get_age(update: Update, context: CallbackContext) -> int:
-    age = update.message.text.strip()
-    if not age.isdigit() or not (5 <= int(age) <= 120):
-        await update.message.reply_text('Invalid. Please enter a valid age.')
-        return AGE
-    context.user_data['age'] = int(age)
-    await update.message.reply_text('Great! What is your occupation?')
-    return OCCUPATION
-
-async def get_occupation(update: Update, context: CallbackContext) -> int:
-    occupation = update.message.text.strip()
-    if not occupation.isalpha():
-        await update.message.reply_text('Invalid occupation. Please enter a valid occupation.')
-        return OCCUPATION
-    context.user_data['occupation'] = occupation
-    await update.message.reply_text('Thanks! Please provide your contact number!')
-    return PHONE
-
-async def get_phone(update: Update, context: CallbackContext) -> int:
-    phone = update.message.text.strip()
-    if not phone.isdigit() or len(phone) != 8:
-        await update.message.reply_text('Invalid phone number. Please enter your 8-digit Singapore phone number.')
-        return PHONE
-    context.user_data['phone'] = phone
-    await update.message.reply_text('Lastly, please provide your email address.')
-    return EMAIL
-
-async def get_email(update: Update, context: CallbackContext) -> int:
-    email = update.message.text.strip()
-    if '@' not in email or ' ' in email:
-        await update.message.reply_text('Invalid email. Please enter a valid email address.')
-        return EMAIL
-    context.user_data['email'] = email
-    user_data = {
-        'Name': context.user_data['name'],
-        'Age': context.user_data['age'],
-        'Occupation': context.user_data['occupation'],
-        'Phone': context.user_data['phone'],
-        'Email': context.user_data['email']
-    }
-    save_to_google_sheets(user_data)
-    await update.message.reply_text('Thank you for providing your information. Now, please send me your postal code to find the nearest clinics!')
     return LOCATION
 
 def get_coordinates_from_postal_code(postal_code):
@@ -200,21 +115,12 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            MAIN_MENU: [MessageHandler(filters.TEXT & ~filters.COMMAND, main_menu)],
-            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
-            AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_age)],
-            OCCUPATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_occupation)],
-            PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
-            EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_email)],
             LOCATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_postal_code)],
         },
         fallbacks=[CommandHandler('start', start)],
     )
 
-    application.add_handler(CommandHandler("request_info", request_info))
-    application.add_handler(CommandHandler("find_clinic", find_clinic))
     application.add_handler(CommandHandler("help", help_command))
-
     application.add_handler(conv_handler)
 
     application.run_polling()
