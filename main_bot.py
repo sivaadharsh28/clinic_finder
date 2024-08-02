@@ -34,6 +34,7 @@ def is_authorized(username):
 
 async def is_authorized_user_in_group(chat):
     administrators = await chat.get_administrators()
+    logger.info(f"Administrators in group: {[admin.user.username for admin in administrators]}")
     for member in administrators:
         if member.user.username in AUTHORIZED_USERNAMES:
             return True
@@ -42,6 +43,8 @@ async def is_authorized_user_in_group(chat):
 async def start(update: Update, context: CallbackContext) -> int:
     username = update.message.from_user.username
     chat_type = update.message.chat.type
+
+    logger.info(f"Chat type: {chat_type}, Username: {username}")
 
     if chat_type == 'private' and not is_authorized(username):
         await update.message.reply_text('You are not authorized to use this bot.')
@@ -114,6 +117,8 @@ def get_place_id(clinic_name, clinic_address):
 async def handle_postal_code(update: Update, context: CallbackContext) -> None:
     username = update.message.from_user.username
     chat_type = update.message.chat.type
+
+    logger.info(f"Chat type: {chat_type}, Username: {username}")
 
     if chat_type == 'private' and not is_authorized(username):
         await update.message.reply_text('You are not authorized to use this bot.')
