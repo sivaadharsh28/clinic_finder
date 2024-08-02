@@ -14,7 +14,7 @@ csv_path = "clinics_with_coordinates.csv"
 clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
 
 # Load the postal codes JSON file
-with open('singpostcode.json', 'r') as f:
+with open('singpostcode.json.gz', 'r') as f:
     postal_codes_data = json.load(f)
 
 # Convert postal codes data to a dictionary for quick lookup
