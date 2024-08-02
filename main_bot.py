@@ -16,7 +16,7 @@ clinics_df = pd.read_csv(csv_path, encoding='ISO-8859-1')
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
 # List of authorized usernames
-AUTHORIZED_USERNAMES = ['username1', 'username2']  # Replace with actual usernames
+AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast']  # Replace with actual usernames
 
 # States for conversation handler
 LOCATION = range(1)
