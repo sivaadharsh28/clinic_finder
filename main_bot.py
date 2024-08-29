@@ -4,6 +4,7 @@ import googlemaps
 import logging
 import json
 import gzip
+from geopy.distance import geodesic
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
 
@@ -31,7 +32,7 @@ except UnicodeDecodeError as e:
 # Convert postal codes data to a dictionary for quick lookup
 postal_codes_dict = {entry["POSTAL"]: entry for entry in postal_codes_data}
 
-# Initialize Google Maps client (if still needed for other purposes)
+# Initialize Google Maps client (for place ID retrieval)
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
 # List of authorized usernames
@@ -92,24 +93,8 @@ def find_nearest_clinics(postal_code, clinics_df, n=5):
     if not user_coords:
         return "Invalid postal code"
 
-    destinations = clinics_df.apply(lambda row: f"{row['Latitude']},{row['Longitude']}", axis=1).tolist()
-    
-    max_batch_size = 25
-    batches = [destinations[i:i + max_batch_size] for i in range(0, len(destinations), max_batch_size)]
-
-    all_distances = []
-
-    for batch in batches:
-        distances_result = gmaps.distance_matrix(origins=[user_coords], destinations=batch, mode="driving")
-
-        if distances_result['status'] != 'OK':
-            print(f"Distance Matrix Error: {distances_result['status']}")
-            return "Error in distance matrix request"
-
-        distances = [element['distance']['value'] if element['status'] == 'OK' else float('inf') for element in distances_result['rows'][0]['elements']]
-        all_distances.extend(distances)
-
-    clinics_df['Distance'] = all_distances
+    # Calculate distances using geopy
+    clinics_df['Distance'] = clinics_df.apply(lambda row: geodesic(user_coords, (row['Latitude'], row['Longitude'])).meters, axis=1)
     nearest_clinics = clinics_df.nsmallest(n, 'Distance')
 
     nearest_clinics['Place_ID'] = nearest_clinics.apply(lambda row: get_place_id(row['Clinic Name'], row['Address']), axis=1)
