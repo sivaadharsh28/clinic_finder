@@ -36,7 +36,7 @@ postal_codes_dict = {entry["POSTAL"]: entry for entry in postal_codes_data}
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
 # List of authorized usernames
-AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast', 'maatchaemochii','mahidharah']  # Replace with actual usernames
+AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast', 'maatchaemochii','mahidharah', 'bribribriz', 'yeelinnnnnnn', 'asapsam1','Geraldz','thesimplerwei', 'missmakk', 'siuperjoy']  # Replace with actual usernames
 
 # States for conversation handler
 LOCATION = range(1)
