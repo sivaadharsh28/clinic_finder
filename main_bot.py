@@ -29,19 +29,17 @@ except UnicodeDecodeError as e:
         print(f"Failed to load JSON file: {e}")
         exit(1)
 
-# Convert postal codes data to a dictionary for quick lookup
 postal_codes_dict = {entry["POSTAL"]: entry for entry in postal_codes_data}
 
 # Initialize Google Maps client (for place ID retrieval)
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
-# List of authorized usernames
-AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast', 'maatchaemochii','mahidharah', 'bribribriz', 'yeelinnnnnnn', 'asapsam1','Geraldz','thesimplerwei', 'missmakk', 'siuperjoy']  # Replace with actual usernames
+# List of authorised usernames
+AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast', 'bribribriz', 'yeelinnnnnnn', 'asapsam1','Geraldz','thesimplerwei', 'missmakk', 'siuperjoy']  
 
-# States for conversation handler
 LOCATION = range(1)
 
-# Enable logging
+# Enabling logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
