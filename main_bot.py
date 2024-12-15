@@ -35,7 +35,7 @@ postal_codes_dict = {entry["POSTAL"]: entry for entry in postal_codes_data}
 gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
 
 # List of authorised usernames
-AUTHORIZED_USERNAMES = ['sivaAdh', 'newdangerbeast', 'bribribriz', 'yeelinnnnnnn', 'asapsam1','Geraldz','thesimplerwei', 'missmakk', 'siuperjoy']  
+AUTHORIZED_USERNAMES = ["fill in username"]  
 
 LOCATION = range(1)
 
