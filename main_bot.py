@@ -163,6 +163,7 @@ def main():
 
     application.run_polling()
 
+
 if __name__ == '__main__':
     from app import keep_alive
     keep_alive()
