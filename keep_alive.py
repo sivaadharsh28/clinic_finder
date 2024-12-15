@@ -12,7 +12,7 @@ def keep_alive(url):
                 print(f"Keep-alive request failed with status code {response.status_code}.")
         except Exception as e:
             print(f"Error in keep-alive request: {e}")
-        time.sleep(600)  # Wait for 10 minutes before sending the next request
+        time.sleep(600)  
 
 def start_keep_alive(url):
     keep_alive_thread = threading.Thread(target=keep_alive, args=(url,))
