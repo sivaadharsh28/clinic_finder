@@ -118,14 +118,6 @@ async def handle_postal_code(update: Update, context: CallbackContext) -> None:
 
     logger.info(f"Chat type: {chat_type}, Username: {username}")
 
-    if chat_type == 'private' and not is_authorized(username):
-        await update.message.reply_text('You are not authorized to use this bot.')
-        return
-
-    if chat_type in ['group', 'supergroup'] and not await is_authorized_user_in_group(update.message.chat):
-        await update.message.reply_text('No authorized user in the group to use this bot.')
-        return
-
     postal_code = update.message.text.strip()
     if not postal_code.isdigit() or len(postal_code) != 6:
         await update.message.reply_text("Invalid postal code. Please enter a 6-digit postal code.")
